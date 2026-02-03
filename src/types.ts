@@ -182,7 +182,7 @@ export const LABELS = {
   claudeMd: 'CLAUDE.md :',
   agentsMd: 'AGENTS.md :',
   rules: '규칙 :',
-  mcps: 'MCP :',
+  mcps: 'MCPs :',
   hooks: '훅 :',
   skills: 'Skills :',
 } as const;
