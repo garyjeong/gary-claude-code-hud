@@ -85,8 +85,7 @@ export function renderAgentsLine(ctx: RenderContext): string | null {
   if (runningAgents.length > 0) {
     const agentParts = runningAgents.map((agent) => {
       const elapsed = formatElapsedTime(agent.startTime);
-      const desc = agent.description ? ` ${dim(truncate(agent.description, 25))}` : '';
-      return `${yellow(ICON.running)} ${magenta(agent.type)}${desc} ${dim(`(${elapsed})`)}`;
+      return `${yellow(ICON.running)} ${magenta(agent.type)} ${dim(`(${elapsed})`)}`;
     });
     parts.push(agentParts.join(' '));
   } else {
