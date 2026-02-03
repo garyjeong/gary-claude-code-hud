@@ -7,7 +7,7 @@ Claude Code용 한국어 실시간 상태 HUD (Head-Up Display) 플러그인
 - **모델 정보**: 현재 사용 중인 AI 모델 및 컨텍스트 사용량
 - **Rate Limit**: 5시간/7일 API 사용량 및 리셋 시간 (Max 플랜 소넷 포함)
 - **프로젝트 정보**: 현재 디렉토리 및 Git 브랜치
-- **설정 카운트**: CLAUDE.md, AGENTS.md, MCP, Skills 개수
+- **설정 카운트**: CLAUDE.md, AGENTS.md, MCPs, Skills 개수 (있는 항목만 표시)
 
 ## 표시 예시
 
