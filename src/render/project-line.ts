@@ -54,30 +54,24 @@ export function renderConfigCountsLine(ctx: RenderContext): string | null {
   const counts = ctx.configCounts;
   const countParts: string[] = [];
 
-  // CLAUDE.md (시안)
+  // CLAUDE.md (시안, 있을 때만)
   if (counts.claudeMdCount > 0) {
     countParts.push(`${cyan(LABELS.claudeMd)} ${cyan(`${counts.claudeMdCount}`)}`);
   }
 
-  // AGENTS.md (파랑, 있으면 체크)
+  // AGENTS.md (파랑, 있을 때만)
   if (counts.agentsMdCount > 0) {
     countParts.push(`${blue(LABELS.agentsMd)} ${blue('✓')}`);
-  } else {
-    countParts.push(`${dim(LABELS.agentsMd)} ${dim('-')}`);
   }
 
-  // MCP (시안)
+  // MCP (시안, 있을 때만)
   if (counts.mcpCount > 0) {
     countParts.push(`${cyan(LABELS.mcps)} ${cyan(`${counts.mcpCount}`)}`);
-  } else {
-    countParts.push(`${dim(LABELS.mcps)} ${dim('0')}`);
   }
 
-  // Skills (파랑)
+  // Skills (파랑, 있을 때만)
   if (counts.skillsCount > 0) {
     countParts.push(`${blue(LABELS.skills)} ${blue(`${counts.skillsCount}`)}`);
-  } else {
-    countParts.push(`${dim(LABELS.skills)} ${dim('0')}`);
   }
 
   // Rules (시안, 있을 때만)

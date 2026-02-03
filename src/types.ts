@@ -184,5 +184,5 @@ export const LABELS = {
   rules: '규칙 :',
   mcps: 'MCP :',
   hooks: '훅 :',
-  skills: '스킬 :',
+  skills: 'Skills :',
 } as const;
