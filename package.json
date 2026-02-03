@@ -1,0 +1,29 @@
+{
+  "name": "gary-claude-code-hud",
+  "version": "1.0.0",
+  "description": "Claude Code용 실시간 상태 HUD - 컨텍스트, Rate Limit, Git, 도구/에이전트/Todo 표시",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublish": "npm run build"
+  },
+  "keywords": [
+    "claude-code",
+    "hud",
+    "statusline",
+    "rate-limit",
+    "korean"
+  ],
+  "author": "gary",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

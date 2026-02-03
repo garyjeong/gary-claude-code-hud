@@ -1,0 +1,13 @@
+{
+  "statusline": {
+    "command": "node",
+    "args": ["dist/index.js"]
+  },
+  "commands": [
+    {
+      "name": "setup",
+      "description": "HUD 설정 구성하기",
+      "path": "commands/setup.md"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "gary-claude-code-hud",
+  "version": "1.0.0",
+  "description": "Claude Code용 실시간 상태 HUD - 컨텍스트, Rate Limit, Git, 도구/에이전트/Todo 표시",
+  "author": {
+    "name": "gary"
+  },
+  "repository": "https://github.com/gary/gary-claude-code-hud",
+  "license": "MIT",
+  "keywords": [
+    "hud",
+    "statusline",
+    "rate-limit",
+    "context",
+    "tools",
+    "agents",
+    "todos",
+    "korean"
+  ]
+}
