@@ -180,7 +180,7 @@ export const LABELS = {
   hours: '시간',
   minutes: '분',
   claudeMd: 'CLAUDE :',
-  agentsMd: 'AGENTS :',
+  agentsMd: 'AGENTS.md :',
   rules: '규칙 :',
   mcps: 'MCP :',
   hooks: '훅 :',
