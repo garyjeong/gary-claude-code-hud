@@ -179,7 +179,7 @@ export const LABELS = {
   resetIn: '리셋',
   hours: '시간',
   minutes: '분',
-  claudeMd: 'CLAUDE :',
+  claudeMd: 'CLAUDE.md :',
   agentsMd: 'AGENTS.md :',
   rules: '규칙 :',
   mcps: 'MCP :',
