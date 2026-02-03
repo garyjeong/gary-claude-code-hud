@@ -35,7 +35,7 @@ export function renderRateLimitLines(ctx: RenderContext): string[] {
     const bar = renderDotBar(pct, 5);
     const color = getColorForPercent(pct);
 
-    let text = `${yellow(ICON.rateLimit)} ${yellow(LABELS.fiveHour)}: ${bar} ${colorize(`${pct}%`, color)}`;
+    let text = `${yellow(ICON.rateLimit)} ${yellow(LABELS.fiveHour)} : ${bar} ${colorize(`${pct}%`, color)}`;
 
     if (limits.five_hour.resets_at) {
       const remaining = formatTimeRemaining(limits.five_hour.resets_at);
@@ -53,7 +53,7 @@ export function renderRateLimitLines(ctx: RenderContext): string[] {
     const bar = renderDotBar(pct, 5);
     const color = getColorForPercent(pct);
 
-    let text = `${yellow(LABELS.sevenDay)}: ${bar} ${colorize(`${pct}%`, color)}`;
+    let text = `${yellow(LABELS.sevenDay)} : ${bar} ${colorize(`${pct}%`, color)}`;
 
     if (limits.seven_day.resets_at) {
       const remaining = formatTimeRemaining(limits.seven_day.resets_at);

@@ -20,18 +20,18 @@ export const PROGRESS_BAR = {
   empty: '○',
 } as const;
 
-// 아이콘 (직관적 텍스트 + 콜론)
+// 아이콘 (직관적 텍스트 + 콜론, 앞뒤 공백)
 export const ICON = {
-  model: '모델:',
-  context: '컨텍스트:',
-  rateLimit: '사용량:',
-  sonnet: '└ 소넷:',
-  project: '프로젝트:',
-  git: 'Git:',
-  tools: '도구:',
-  agents: '에이전트:',
-  todos: '할일:',
-  session: '세션:',
+  model: '모델 :',
+  context: '컨텍스트 :',
+  rateLimit: '사용량 :',
+  sonnet: '└ 소넷 :',
+  project: '프로젝트 :',
+  git: 'Git :',
+  tools: '도구 :',
+  agents: '에이전트 :',
+  todos: '할일 :',
+  session: '세션 :',
   warning: '(!)',
   error: '(X)',
   success: '(v)',
