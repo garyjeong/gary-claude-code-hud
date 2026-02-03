@@ -15,7 +15,7 @@ Claude Code용 한국어 실시간 상태 HUD (Head-Up Display) 플러그인
 모델 : Opus ●●●○○○○○○○ 35% 70K/200K 세션 : 1시간 23분
 사용량 : 5시간 : ●●○○○ 32% (2시간 15분) │ 7일 : ●●●○○ 45% (5시간 30분)
 └ 소넷 : ●○○○○ 12% (150시간 20분)
-프로젝트 : workspace/my-project │ Git : main* │ CLAUDE : 1 │ AGENTS : ✓ │ MCP : 3 │ 스킬 : 27
+프로젝트 : workspace/my-project │ Git : main* │ CLAUDE : 1 │ AGENTS.md : ✓ │ MCP : 3 │ 스킬 : 27
 ```
 
 ### 색상 테마
