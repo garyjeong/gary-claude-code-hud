@@ -54,17 +54,25 @@ export function formatTimeRemaining(resetsAt: string): string {
 /**
  * 모델명 축약
  */
-export function shortenModelName(displayName?: string): string {
-  if (!displayName) return 'Unknown';
+export function shortenModelName(displayName?: string, modelId?: string): string {
+  if (!displayName && !modelId) return 'Unknown';
 
-  const name = displayName.toLowerCase();
+  // model.id에서 버전 추출 (예: "claude-opus-4-6" → "4.6")
+  let version = '';
+  if (modelId) {
+    const versionMatch = modelId.match(/(\d+)-(\d+)/);
+    if (versionMatch) {
+      version = ` ${versionMatch[1]}.${versionMatch[2]}`;
+    }
+  }
 
-  if (name.includes('opus')) return 'Opus';
-  if (name.includes('sonnet')) return 'Sonnet';
-  if (name.includes('haiku')) return 'Haiku';
+  const name = (displayName ?? modelId ?? '').toLowerCase();
 
-  // 첫 번째 단어만 반환
-  return displayName.split(' ')[0];
+  if (name.includes('opus')) return `Opus${version}`;
+  if (name.includes('sonnet')) return `Sonnet${version}`;
+  if (name.includes('haiku')) return `Haiku${version}`;
+
+  return displayName ?? modelId ?? 'Unknown';
 }
 
 /**

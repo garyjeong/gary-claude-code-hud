@@ -5,7 +5,7 @@
 import type { RenderContext } from '../types.js';
 import { RESET } from '../utils/colors.js';
 import { renderSessionLine } from './session-line.js';
-import { renderRateLimitLines } from './rate-limit-line.js';
+import { renderRateLimitParts } from './rate-limit-line.js';
 import { renderProjectLine, renderConfigCountsLine } from './project-line.js';
 import { renderToolsLine, renderAgentsLine, renderTodosLine } from './activity-line.js';
 
@@ -17,12 +17,16 @@ export function render(ctx: RenderContext): void {
 
   if (ctx.config.layout === 'multiline') {
     // 멀티라인 레이아웃
-    const sessionLine = renderSessionLine(ctx);
-    if (sessionLine) lines.push(sessionLine);
 
-    // Rate Limit (여러 줄 가능)
-    const rateLimitLines = renderRateLimitLines(ctx);
-    lines.push(...rateLimitLines);
+    // 모델 + 사용량 (한 줄)
+    const firstLineParts: string[] = [];
+    const sessionLine = renderSessionLine(ctx);
+    if (sessionLine) firstLineParts.push(sessionLine);
+    const rateLimitParts = renderRateLimitParts(ctx);
+    firstLineParts.push(...rateLimitParts);
+    if (firstLineParts.length > 0) {
+      lines.push(firstLineParts.join(' │ '));
+    }
 
     // 프로젝트 + 설정 카운트 (한 줄로)
     const projectLine = renderProjectLine(ctx);
@@ -47,9 +51,8 @@ export function render(ctx: RenderContext): void {
     const sessionLine = renderSessionLine(ctx);
     if (sessionLine) allParts.push(sessionLine);
 
-    // 컴팩트 모드에서는 Rate Limit 첫 줄만 사용
-    const rateLimitLines = renderRateLimitLines(ctx);
-    if (rateLimitLines.length > 0) allParts.push(rateLimitLines[0]);
+    const rateLimitParts = renderRateLimitParts(ctx);
+    allParts.push(...rateLimitParts);
 
     const projectLine = renderProjectLine(ctx);
     if (projectLine) allParts.push(projectLine);
@@ -59,11 +62,6 @@ export function render(ctx: RenderContext): void {
 
     if (allParts.length > 0) {
       lines.push(allParts.join(' │ '));
-    }
-
-    // 컴팩트 모드에서도 소넷 라인은 별도 줄로
-    if (rateLimitLines.length > 1) {
-      lines.push(rateLimitLines[1]);
     }
 
     // 활동 라인은 별도로
