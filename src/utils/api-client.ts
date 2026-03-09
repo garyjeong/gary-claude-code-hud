@@ -14,6 +14,10 @@ interface CacheEntry {
   timestamp: number;
 }
 
+interface FileCacheEntry extends CacheEntry {
+  isStale: boolean;
+}
+
 // 메모리 캐시
 let usageCache: CacheEntry | null = null;
 
@@ -34,20 +38,29 @@ function isCacheValid(ttlSeconds: number): boolean {
 }
 
 /**
+ * usage API 디버그 로그 출력
+ */
+function logUsageDebug(message: string): void {
+  if (process.env.CLAUDE_CODE_HUD_DEBUG === '1') {
+    console.error(`[gary-claude-code-hud] ${message}`);
+  }
+}
+
+/**
  * 파일 캐시 로드
  */
-function loadFileCache(ttlSeconds: number): UsageLimits | null {
+function loadFileCache(ttlSeconds: number): FileCacheEntry | null {
   try {
     const cachePath = getCachePath();
     if (!fs.existsSync(cachePath)) return null;
 
     const content = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
     const ageSeconds = (Date.now() - content.timestamp) / 1000;
-
-    if (ageSeconds < ttlSeconds) {
-      return content.data as UsageLimits;
-    }
-    return null;
+    return {
+      data: content.data as UsageLimits,
+      timestamp: content.timestamp as number,
+      isStale: ageSeconds >= ttlSeconds,
+    };
   } catch {
     return null;
   }
@@ -86,19 +99,25 @@ export async function fetchUsageLimits(ttlSeconds = 60): Promise<UsageLimits | n
 
   // 2. 파일 캐시 확인
   const fileCache = loadFileCache(ttlSeconds);
-  if (fileCache) {
-    usageCache = { data: fileCache, timestamp: Date.now() };
-    return fileCache;
+  if (fileCache && !fileCache.isStale) {
+    usageCache = { data: fileCache.data, timestamp: Date.now() };
+    return fileCache.data;
   }
 
   // 3. API 호출
   let token = await getCredentials();
-  if (!token) return null;
+  if (!token) {
+    if (fileCache) {
+      logUsageDebug('credentials unavailable, falling back to stale cache');
+      usageCache = { data: fileCache.data, timestamp: fileCache.timestamp };
+      return fileCache.data;
+    }
+    return null;
+  }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-
     const response = await fetch('https://api.anthropic.com/api/oauth/usage', {
       method: 'GET',
       headers: {
@@ -113,12 +132,24 @@ export async function fetchUsageLimits(ttlSeconds = 60): Promise<UsageLimits | n
 
     // 보안: 토큰 메모리에서 제거
     token = null;
-
-    clearTimeout(timeout);
-
-    if (!response.ok) return null;
+    if (!response.ok) {
+      logUsageDebug(`usage API returned HTTP ${response.status}`);
+      if (fileCache) {
+        usageCache = { data: fileCache.data, timestamp: fileCache.timestamp };
+        return fileCache.data;
+      }
+      return null;
+    }
 
     const data = await response.json();
+    if (typeof data !== 'object' || data === null) {
+      logUsageDebug('usage API returned a non-object payload');
+      if (fileCache) {
+        usageCache = { data: fileCache.data, timestamp: fileCache.timestamp };
+        return fileCache.data;
+      }
+      return null;
+    }
 
     const limits: UsageLimits = {
       five_hour: data.five_hour,
@@ -131,9 +162,18 @@ export async function fetchUsageLimits(ttlSeconds = 60): Promise<UsageLimits | n
     saveFileCache(limits);
 
     return limits;
-  } catch {
+  } catch (error) {
     // 보안: 오류 시에도 토큰 제거
     token = null;
+    logUsageDebug(
+      error instanceof Error ? `usage API request failed: ${error.message}` : 'usage API request failed'
+    );
+    if (fileCache) {
+      usageCache = { data: fileCache.data, timestamp: fileCache.timestamp };
+      return fileCache.data;
+    }
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
