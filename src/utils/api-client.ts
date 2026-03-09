@@ -7,11 +7,12 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import type { UsageLimits } from '../types.js';
 import { getCredentials } from './credentials.js';
-import { API_TIMEOUT_MS, CACHE_DIR, CACHE_FILE } from '../constants.js';
+import { API_TIMEOUT_MS, CACHE_DIR, CACHE_FILE, RATE_LIMIT_BACKOFF_MS } from '../constants.js';
 
 interface CacheEntry {
   data: UsageLimits;
   timestamp: number;
+  retryAfter?: number;
 }
 
 interface FileCacheEntry extends CacheEntry {
@@ -59,6 +60,7 @@ function loadFileCache(ttlSeconds: number): FileCacheEntry | null {
     return {
       data: content.data as UsageLimits,
       timestamp: content.timestamp as number,
+      retryAfter: content.retryAfter as number | undefined,
       isStale: ageSeconds >= ttlSeconds,
     };
   } catch {
@@ -69,7 +71,7 @@ function loadFileCache(ttlSeconds: number): FileCacheEntry | null {
 /**
  * 파일 캐시 저장
  */
-function saveFileCache(data: UsageLimits): void {
+function saveFileCache(data: UsageLimits, retryAfter?: number): void {
   try {
     const cachePath = getCachePath();
     const dir = path.dirname(cachePath);
@@ -78,14 +80,37 @@ function saveFileCache(data: UsageLimits): void {
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
 
+    const entry: Record<string, unknown> = { data, timestamp: Date.now() };
+    if (retryAfter) entry.retryAfter = retryAfter;
+
     fs.writeFileSync(
       cachePath,
-      JSON.stringify({ data, timestamp: Date.now() }),
+      JSON.stringify(entry),
       { mode: 0o600 }
     );
   } catch {
     // 캐시 저장 실패 무시
   }
+}
+
+/**
+ * Retry-After 헤더 파싱 (초 단위 또는 HTTP-date)
+ */
+function parseRetryAfter(value: string | null): number | null {
+  if (!value) return null;
+
+  const seconds = Number(value);
+  if (!Number.isNaN(seconds) && seconds > 0) {
+    return seconds * 1000;
+  }
+
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    const ms = date.getTime() - Date.now();
+    return ms > 0 ? ms : null;
+  }
+
+  return null;
 }
 
 /**
@@ -101,6 +126,12 @@ export async function fetchUsageLimits(ttlSeconds = 60): Promise<UsageLimits | n
   const fileCache = loadFileCache(ttlSeconds);
   if (fileCache && !fileCache.isStale) {
     usageCache = { data: fileCache.data, timestamp: Date.now() };
+    return fileCache.data;
+  }
+
+  // 2.5 retryAfter 백오프 체크 (429 방어)
+  if (fileCache?.retryAfter && Date.now() < fileCache.retryAfter) {
+    logUsageDebug(`rate limited, backing off until ${new Date(fileCache.retryAfter).toISOString()}`);
     return fileCache.data;
   }
 
@@ -134,8 +165,17 @@ export async function fetchUsageLimits(ttlSeconds = 60): Promise<UsageLimits | n
     token = null;
     if (!response.ok) {
       logUsageDebug(`usage API returned HTTP ${response.status}`);
+
+      if (response.status === 429 && fileCache) {
+        const retryAfterHeader = response.headers.get('retry-after');
+        const backoffMs = parseRetryAfter(retryAfterHeader) ?? RATE_LIMIT_BACKOFF_MS;
+        logUsageDebug(`429 rate limited, backing off for ${backoffMs / 1000}s`);
+        saveFileCache(fileCache.data, Date.now() + backoffMs);
+        return fileCache.data;
+      }
+
       if (fileCache) {
-        usageCache = { data: fileCache.data, timestamp: fileCache.timestamp };
+        saveFileCache(fileCache.data);
         return fileCache.data;
       }
       return null;
@@ -145,7 +185,7 @@ export async function fetchUsageLimits(ttlSeconds = 60): Promise<UsageLimits | n
     if (typeof data !== 'object' || data === null) {
       logUsageDebug('usage API returned a non-object payload');
       if (fileCache) {
-        usageCache = { data: fileCache.data, timestamp: fileCache.timestamp };
+        saveFileCache(fileCache.data);
         return fileCache.data;
       }
       return null;
@@ -169,7 +209,7 @@ export async function fetchUsageLimits(ttlSeconds = 60): Promise<UsageLimits | n
       error instanceof Error ? `usage API request failed: ${error.message}` : 'usage API request failed'
     );
     if (fileCache) {
-      usageCache = { data: fileCache.data, timestamp: fileCache.timestamp };
+      saveFileCache(fileCache.data);
       return fileCache.data;
     }
     return null;

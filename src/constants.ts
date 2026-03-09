@@ -8,6 +8,9 @@ export const AUTOCOMPACT_BUFFER = 5000;
 // API 타임아웃 (ms)
 export const API_TIMEOUT_MS = 5000;
 
+// 429 Rate Limit 기본 백오프 (ms) - Retry-After 헤더 없을 때 사용
+export const RATE_LIMIT_BACKOFF_MS = 300_000; // 5분
+
 // 캐시 경로
 export const CACHE_DIR = '.claude';
 export const CACHE_FILE = 'gary-claude-code-hud-cache.json';
