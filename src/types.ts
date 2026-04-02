@@ -150,7 +150,6 @@ export interface RenderContext {
   configCounts: ConfigCounts;
   gitBranch?: string;
   gitDirty?: boolean;
-  sessionDuration: string;
   rateLimits: UsageLimits | null;
 }
 

@@ -16,24 +16,6 @@ export function formatTokens(tokens: number): string {
 }
 
 /**
- * 세션 지속 시간 포맷팅
- */
-export function formatSessionDuration(sessionStart?: Date): string {
-  if (!sessionStart) return '';
-
-  const now = Date.now();
-  const ms = now - sessionStart.getTime();
-  const mins = Math.floor(ms / 60000);
-
-  if (mins < 1) return '<1분';
-  if (mins < 60) return `${mins}분`;
-
-  const hours = Math.floor(mins / 60);
-  const remainingMins = mins % 60;
-  return `${hours}시간 ${remainingMins}분`;
-}
-
-/**
  * 리셋 시간까지 남은 시간 포맷팅
  */
 export function formatTimeRemaining(resetsAt: string): string {

@@ -12,7 +12,6 @@ import { parseTranscript } from './utils/transcript.js';
 import { countConfigs } from './utils/config-counter.js';
 import { getGitStatus } from './utils/git.js';
 import { fetchUsageLimits } from './utils/api-client.js';
-import { formatSessionDuration } from './utils/formatters.js';
 import { render } from './render/index.js';
 import { yellow, RESET } from './utils/colors.js';
 import { ICON } from './constants.js';
@@ -47,10 +46,7 @@ async function main(): Promise<void> {
       ? await fetchUsageLimits(config.cache.ttlSeconds)
       : null;
 
-    // 7. 세션 시간
-    const sessionDuration = formatSessionDuration(transcript.sessionStart);
-
-    // 8. 렌더 컨텍스트 구성
+    // 7. 렌더 컨텍스트 구성
     const ctx: RenderContext = {
       stdin,
       config,
@@ -58,7 +54,6 @@ async function main(): Promise<void> {
       configCounts,
       gitBranch: gitStatus?.branch,
       gitDirty: gitStatus?.isDirty,
-      sessionDuration,
       rateLimits,
     };
 
