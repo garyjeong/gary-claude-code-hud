@@ -226,7 +226,83 @@ function countSkills(globalClaudeDir: string, cwd?: string): number {
     count += countSkillsInDir(localSkillsDir);
   }
 
+  // 활성화된 플러그인이 제공하는 skills
+  count += countPluginSkills(globalClaudeDir);
+
   return count;
+}
+
+/**
+ * 활성화된 플러그인이 로딩한 스킬 개수 카운트
+ * ~/.claude/plugins/installed_plugins.json 의 installPath/skills/ 하위에서
+ * SKILL.md 를 가진 디렉토리를 스킬로 카운트한다.
+ * settings.json 의 enabledPlugins 에서 true 인 플러그인만 집계한다.
+ */
+function countPluginSkills(globalClaudeDir: string): number {
+  try {
+    const installedPath = path.join(
+      globalClaudeDir,
+      'plugins',
+      'installed_plugins.json'
+    );
+    if (!fs.existsSync(installedPath)) return 0;
+
+    const installed = JSON.parse(fs.readFileSync(installedPath, 'utf-8'));
+    const plugins = installed?.plugins ?? {};
+
+    // 활성화된 플러그인 목록 (settings.json 의 enabledPlugins)
+    let enabled: Record<string, boolean> = {};
+    try {
+      const settings = JSON.parse(
+        fs.readFileSync(path.join(globalClaudeDir, 'settings.json'), 'utf-8')
+      );
+      enabled = settings.enabledPlugins ?? {};
+    } catch {
+      enabled = {};
+    }
+    const hasEnabledList = Object.keys(enabled).length > 0;
+
+    let count = 0;
+    for (const [pluginKey, entries] of Object.entries(plugins)) {
+      // enabledPlugins 목록이 있으면 true 인 것만, 없으면 설치된 전부 집계
+      if (hasEnabledList && enabled[pluginKey] !== true) continue;
+      if (!Array.isArray(entries)) continue;
+
+      for (const entry of entries) {
+        const installPath = (entry as { installPath?: string })?.installPath;
+        if (!installPath) continue;
+        count += countPluginSkillsInDir(path.join(installPath, 'skills'));
+      }
+    }
+
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * 플러그인 skills 디렉토리에서 SKILL.md 를 가진 서브디렉토리 개수 카운트
+ */
+function countPluginSkillsInDir(skillsDir: string): number {
+  try {
+    if (!fs.existsSync(skillsDir)) return 0;
+
+    const entries = fs.readdirSync(skillsDir);
+    let count = 0;
+
+    for (const entry of entries) {
+      const fullPath = path.join(skillsDir, entry);
+      if (!fs.statSync(fullPath).isDirectory()) continue;
+      if (fs.existsSync(path.join(fullPath, 'SKILL.md'))) {
+        count++;
+      }
+    }
+
+    return count;
+  } catch {
+    return 0;
+  }
 }
 
 /**

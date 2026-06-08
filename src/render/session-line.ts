@@ -5,7 +5,7 @@
 
 import type { RenderContext } from '../types.js';
 import { ICON, AUTOCOMPACT_BUFFER } from '../constants.js';
-import { green, cyan, renderDotBar, getColorForPercent, colorize, dim, RESET } from '../utils/colors.js';
+import { green, cyan, getColorForPercent, colorize, dim, RESET } from '../utils/colors.js';
 import { shortenModelName, formatTokens, formatTimeRemaining } from '../utils/formatters.js';
 import { getContextPercent, getCurrentTokens, getTotalTokens } from '../utils/stdin.js';
 
@@ -30,9 +30,6 @@ export function renderSessionLine(ctx: RenderContext): string | null {
     const percent = getContextPercent(ctx.stdin, AUTOCOMPACT_BUFFER);
     const currentTokens = getCurrentTokens(ctx.stdin, AUTOCOMPACT_BUFFER);
     const totalTokens = getTotalTokens(ctx.stdin);
-
-    const bar = renderDotBar(percent);
-    parts.push(bar);
 
     const percentColor = getColorForPercent(percent);
     parts.push(colorize(`${percent}%`, percentColor));
