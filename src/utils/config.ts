@@ -66,6 +66,7 @@ function mergeConfig(userConfig: Partial<Config>): Config {
   return {
     plan: userConfig.plan ?? DEFAULT_CONFIG.plan,
     layout: userConfig.layout ?? DEFAULT_CONFIG.layout,
+    grokWeekAnchor: userConfig.grokWeekAnchor ?? DEFAULT_CONFIG.grokWeekAnchor,
     display: {
       showContext: userConfig.display?.showContext ?? DEFAULT_CONFIG.display.showContext,
       showRateLimit: userConfig.display?.showRateLimit ?? DEFAULT_CONFIG.display.showRateLimit,
@@ -75,7 +76,7 @@ function mergeConfig(userConfig: Partial<Config>): Config {
       showAgents: userConfig.display?.showAgents ?? DEFAULT_CONFIG.display.showAgents,
       showTodos: userConfig.display?.showTodos ?? DEFAULT_CONFIG.display.showTodos,
       showConfigCounts: userConfig.display?.showConfigCounts ?? DEFAULT_CONFIG.display.showConfigCounts,
-      showSessionDuration: userConfig.display?.showSessionDuration ?? DEFAULT_CONFIG.display.showSessionDuration,
+      showExternalUsage: userConfig.display?.showExternalUsage ?? DEFAULT_CONFIG.display.showExternalUsage,
     },
     cache: {
       ttlSeconds: userConfig.cache?.ttlSeconds ?? DEFAULT_CONFIG.cache.ttlSeconds,

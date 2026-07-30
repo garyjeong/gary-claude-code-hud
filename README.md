@@ -5,16 +5,16 @@ Claude Code용 한국어 실시간 상태 HUD (Head-Up Display) 플러그인
 ## 주요 기능
 
 - **모델 정보**: 현재 사용 중인 AI 모델 및 컨텍스트 사용량
-- **Rate Limit**: 5시간/7일 API 사용량 및 리셋 시간 (Max 플랜 소넷 포함)
+- **Rate Limit**: 5시간/7일 API 사용량
+- **외부 CLI 사용량**: codex 한도·초기화 시각, grok 토큰·비용 (로컬 파일에서 읽음)
 - **프로젝트 정보**: 현재 디렉토리 및 Git 브랜치
 - **설정 카운트**: CLAUDE.md, AGENTS.md, MCPs, Skills 개수 (있는 항목만 표시)
 
 ## 표시 예시
 
 ```
-모델 : Opus ●●●○○○○○○○ 35% 70K/200K 세션 : 1시간 23분
-사용량 : 5시간 : ●●○○○ 32% (2시간 15분) │ 7일 : ●●●○○ 45% (5시간 30분)
-└ 소넷 : ●○○○○ 12% (150시간 20분)
+모델 : Opus 35% 70K/200K │ 사용량 : 62%(5시간·2시간 15분) / 50%(7일)
+외부 : codex 54%(7일·08-05 13시) 31K │ grok 8.0M $5.17(주간·08-04 14시)
 프로젝트 : workspace/my-project │ Git : main* │ CLAUDE.md : 1 │ AGENTS.md : ✓ │ MCPs : 3 │ Skills : 27
 ```
 
@@ -22,8 +22,9 @@ Claude Code용 한국어 실시간 상태 HUD (Head-Up Display) 플러그인
 
 | 섹션 | 색상 | 항목 |
 |------|------|------|
-| 모델 | 녹색 | 모델명, 컨텍스트 진행바 |
-| 사용량 | 노랑 | 5시간, 7일, 소넷 Rate Limit |
+| 모델 | 녹색 | 모델명, 컨텍스트 |
+| 사용량 | 노랑 | 5시간, 7일 Rate Limit |
+| 외부 | 마젠타 | codex, grok 사용량 |
 | 프로젝트 | 파랑/시안 | 프로젝트 경로, Git, 설정 카운트 |
 
 ## 설치
@@ -71,6 +72,7 @@ npm run build
 {
   "plan": "max200",
   "layout": "multiline",
+  "grokWeekAnchor": "2026-08-04T14:19:00",
   "display": {
     "showContext": true,
     "showRateLimit": true,
@@ -80,7 +82,7 @@ npm run build
     "showAgents": true,
     "showTodos": true,
     "showConfigCounts": true,
-    "showSessionDuration": true
+    "showExternalUsage": true
   },
   "cache": {
     "ttlSeconds": 60
@@ -94,6 +96,7 @@ npm run build
 |------|------|-----|--------|
 | `plan` | API 플랜 | `pro`, `max100`, `max200`, `team` | `max200` |
 | `layout` | 레이아웃 | `multiline`, `compact` | `multiline` |
+| `grokWeekAnchor` | grok 주간 한도 초기화 기준시각 (로컬 ISO) | `2026-08-04T14:19:00` | 위 값 |
 | `display.showContext` | 컨텍스트 사용량 표시 | `true/false` | `true` |
 | `display.showRateLimit` | Rate Limit 표시 | `true/false` | `true` |
 | `display.showProject` | 프로젝트 경로 표시 | `true/false` | `true` |
@@ -102,16 +105,16 @@ npm run build
 | `display.showAgents` | 에이전트 상태 표시 | `true/false` | `true` |
 | `display.showTodos` | Todo 진행률 표시 | `true/false` | `true` |
 | `display.showConfigCounts` | 설정 파일 카운트 표시 | `true/false` | `true` |
-| `display.showSessionDuration` | 세션 시간 표시 | `true/false` | `true` |
+| `display.showExternalUsage` | codex·grok 사용량 표시 | `true/false` | `true` |
 | `cache.ttlSeconds` | API 캐시 TTL (초) | 숫자 | `60` |
 
 ### 플랜별 표시 차이
 
-| 플랜 | 5시간 | 7일 전체 | 7일 소넷 |
-|------|-------|----------|----------|
-| Pro | O | X | X |
-| Max 100/200 | O | O | O |
-| Team | O | X | X |
+| 플랜 | 5시간 | 7일 전체 |
+|------|-------|----------|
+| Pro | O | X |
+| Max 100/200 | O | O |
+| Team | O | X |
 
 ## Rate Limit API
 
@@ -123,6 +126,39 @@ macOS Keychain에 저장된 Claude 인증 정보를 사용합니다.
 API 호출 최소화를 위해 결과를 캐싱합니다:
 - 캐시 위치: `~/.claude/gary-claude-code-hud-cache.json`
 - 기본 TTL: 60초
+
+## 외부 CLI 사용량 (codex / grok)
+
+두 CLI 모두 사용량 조회 서브커맨드를 제공하지 않으므로, 로컬 세션 파일을 직접 읽습니다.
+네트워크 호출은 없습니다.
+
+| | 데이터 소스 | 표시 항목 |
+|---|---|---|
+| codex | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | 한도 %, 윈도우, 초기화 시각, 세션 누적 토큰 |
+| grok | `~/.grok/sessions/<URL인코딩 cwd>/<session>/updates.jsonl` | 주간 누적 토큰, 비용(USD), 초기화 시각 |
+
+- **codex**: 서버가 턴마다 내려주는 `rate_limits` 스냅샷 중 가장 최신 값을 씁니다.
+  전체 세션 파일이 수백 개까지 늘어나므로 오늘(없으면 어제) 디렉터리만, 그중 최신 파일의
+  꼬리 일부만 읽습니다.
+- **Rate Limit**: 5시간 한도는 초기화까지 **남은 시간**(짧은 창이라 읽기 쉬움),
+  7일·주간처럼 긴 창은 **절대 시각**으로 표시합니다.
+- **grok**: CLI 경로로는 **주간 한도 %를 얻을 수 없습니다.** grok.com 웹앱의 설정 → 사용량에는
+  주간 한도(예: `3% 사용, 8월 4일 초기화`)가 표시되지만, 그 값은 웹앱이 자체 API로 가져오는
+  것입니다. 확인한 사실 — 로컬 세션 파일에는 한도 필드가 없고, `/usage` 슬래시 커맨드는
+  TUI 전용이며(headless `-p`는 이를 일반 프롬프트로 취급), CLI OIDC 액세스 토큰으로
+  `cli-chat-proxy.grok.com` · `api.x.ai`의 사용량/구독 경로를 조회하면 모두 404입니다
+  (토큰 자체는 유효 — 401이 아님). 그래서 %가 아니라 토큰·비용만 표시합니다.
+- **grok 주간 창**: %를 못 가져오는 대신, 집계 창을 웹앱의 주간 한도 창과 맞춥니다.
+  `grokWeekAnchor`(초기화 시각)를 앵커로 7일 주기를 되돌려 현재 창을 구하고, 그 창 안의
+  **증분**만 합산합니다. `usage`는 세션 전체 누적이므로 창을 걸친 세션은 창 직전 값을
+  기준선으로 빼야 이전 주가 섞이지 않습니다(세션 시작 시각은 파일 앞 8KB로 판정).
+  세션이 상한(40개)을 넘으면 합계 뒤에 `+`를 붙여 과소 집계임을 표시합니다.
+
+  > 앵커는 계정마다 다릅니다. grok.com → 설정 → 사용량에 표시된 초기화 시각을
+  > `grokWeekAnchor`에 넣으세요. 주기만 맞으면 과거·미래 어느 시점을 넣어도 됩니다.
+  각 세션의 `usage`는 그 세션의 누적값이므로, 오늘 수정된 세션(최대 12개)의 마지막
+  값만 합산합니다. 비용은 `costUsdTicks / 1e10 = USD`로 환산합니다.
+- 해당 CLI를 쓰지 않거나 파일을 못 읽으면 그 항목만 조용히 생략됩니다.
 
 ## 요구사항
 

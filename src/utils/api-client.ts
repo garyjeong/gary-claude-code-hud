@@ -191,10 +191,10 @@ export async function fetchUsageLimits(ttlSeconds = 60): Promise<UsageLimits | n
       return null;
     }
 
+    // 소넷 주간 한도(seven_day_sonnet)는 별도 측정이 없어져 더 이상 읽지 않는다.
     const limits: UsageLimits = {
       five_hour: data.five_hour,
       seven_day: data.seven_day,
-      seven_day_sonnet: data.seven_day_sonnet,
     };
 
     // 캐시 저장

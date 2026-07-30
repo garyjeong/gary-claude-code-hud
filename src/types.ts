@@ -2,6 +2,8 @@
  * gary-claude-code-hud 타입 정의
  */
 
+import { GROK_WEEK_ANCHOR } from './constants.js';
+
 // ============================================================================
 // stdin 입력 타입
 // ============================================================================
@@ -44,12 +46,18 @@ export interface DisplayConfig {
   showAgents: boolean;
   showTodos: boolean;
   showConfigCounts: boolean;
-  showSessionDuration: boolean;
+  /** codex·grok 외부 CLI 사용량 라인 */
+  showExternalUsage: boolean;
 }
 
 export interface Config {
   plan: PlanType;
   layout: LayoutType;
+  /**
+   * grok 주간 한도 초기화 기준시각 (로컬 ISO, 예: 2026-08-04T14:19:00).
+   * grok.com 설정 → 사용량에 표시된 초기화 시각을 넣으면 그 창으로 집계된다.
+   */
+  grokWeekAnchor: string;
   display: DisplayConfig;
   cache: {
     ttlSeconds: number;
@@ -59,6 +67,7 @@ export interface Config {
 export const DEFAULT_CONFIG: Config = {
   plan: 'max200',
   layout: 'multiline',
+  grokWeekAnchor: GROK_WEEK_ANCHOR,
   display: {
     showContext: true,
     showRateLimit: true,
@@ -68,7 +77,7 @@ export const DEFAULT_CONFIG: Config = {
     showAgents: true,
     showTodos: true,
     showConfigCounts: true,
-    showSessionDuration: true,
+    showExternalUsage: true,
   },
   cache: {
     ttlSeconds: 60,
@@ -87,7 +96,17 @@ export interface RateLimitInfo {
 export interface UsageLimits {
   five_hour?: RateLimitInfo;
   seven_day?: RateLimitInfo;
-  seven_day_sonnet?: RateLimitInfo;
+}
+
+// ============================================================================
+// 외부 CLI(codex / grok) 사용량 타입
+// ============================================================================
+
+export interface ExternalUsage {
+  /** codex는 한도 %와 초기화 시각까지 제공한다 */
+  codex: import('./utils/codex-usage.js').CodexUsage | null;
+  /** grok은 한도를 노출하지 않아 토큰·비용만 있다 */
+  grok: import('./utils/grok-usage.js').GrokUsage | null;
 }
 
 // ============================================================================
@@ -151,6 +170,7 @@ export interface RenderContext {
   gitBranch?: string;
   gitDirty?: boolean;
   rateLimits: UsageLimits | null;
+  externalUsage: ExternalUsage | null;
 }
 
 // ============================================================================
@@ -164,7 +184,10 @@ export const LABELS = {
   fiveHour: '5시간',
   sevenDay: '7일',
   sevenDayAll: '전체',
-  sevenDaySonnet: '소넷',
+  external: '외부',
+  codex: 'codex',
+  grok: 'grok',
+  weekly: '주간',
   project: '프로젝트',
   git: 'Git',
   tools: '도구',

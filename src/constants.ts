@@ -28,7 +28,7 @@ export const ICON = {
   model: '모델 :',
   context: '컨텍스트 :',
   rateLimit: '사용량 :',
-  sonnet: '└ 소넷 :',
+  external: '외부 :',
   project: '프로젝트 :',
   git: 'Git :',
   tools: '도구 :',
@@ -42,6 +42,12 @@ export const ICON = {
   pending: '[ ]',
   completed: '[v]',
 } as const;
+
+// grok 주간 한도 초기화 기준시각 (로컬 시간).
+// grok CLI는 한도를 API로 노출하지 않으므로, grok.com 설정 → 사용량에 표시되는
+// 초기화 시각을 앵커로 두고 7일 주기를 계산해 같은 창으로 집계를 맞춘다.
+// 계정마다 다르고 바뀔 수 있어 설정(grokWeekAnchor)으로 덮어쓸 수 있다.
+export const GROK_WEEK_ANCHOR = '2026-08-04T14:19:00';
 
 // 컨텍스트 임계값 (%)
 export const CONTEXT_THRESHOLDS = {

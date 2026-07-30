@@ -5,13 +5,15 @@
  * Claude Code용 실시간 상태 HUD
  */
 
-import type { RenderContext } from './types.js';
+import type { ExternalUsage, RenderContext } from './types.js';
 import { readStdin } from './utils/stdin.js';
 import { loadConfig } from './utils/config.js';
 import { parseTranscript } from './utils/transcript.js';
 import { countConfigs } from './utils/config-counter.js';
 import { getGitStatus } from './utils/git.js';
 import { fetchUsageLimits } from './utils/api-client.js';
+import { readCodexUsage } from './utils/codex-usage.js';
+import { readGrokUsage } from './utils/grok-usage.js';
 import { render } from './render/index.js';
 import { yellow, RESET } from './utils/colors.js';
 import { ICON } from './constants.js';
@@ -46,7 +48,21 @@ async function main(): Promise<void> {
       ? await fetchUsageLimits(config.cache.ttlSeconds)
       : null;
 
-    // 7. 렌더 컨텍스트 구성
+    // 7. 외부 CLI 사용량 (로컬 파일만 읽는다 — 네트워크 호출 없음)
+    let externalUsage: ExternalUsage | null = null;
+    if (config.display.showExternalUsage) {
+      try {
+        externalUsage = {
+          codex: readCodexUsage(),
+          grok: readGrokUsage(stdin.cwd, config.grokWeekAnchor),
+        };
+      } catch {
+        // 외부 CLI 미설치·경로 변경으로 실패해도 HUD 전체는 살린다
+        externalUsage = null;
+      }
+    }
+
+    // 8. 렌더 컨텍스트 구성
     const ctx: RenderContext = {
       stdin,
       config,
@@ -55,6 +71,7 @@ async function main(): Promise<void> {
       gitBranch: gitStatus?.branch,
       gitDirty: gitStatus?.isDirty,
       rateLimits,
+      externalUsage,
     };
 
     // 9. 렌더링

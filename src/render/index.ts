@@ -6,6 +6,7 @@ import type { RenderContext } from '../types.js';
 import { RESET } from '../utils/colors.js';
 import { renderSessionLine } from './session-line.js';
 import { renderRateLimitParts } from './rate-limit-line.js';
+import { renderExternalLine } from './external-line.js';
 import { renderProjectLine, renderConfigCountsLine } from './project-line.js';
 import { renderToolsLine, renderAgentsLine, renderTodosLine } from './activity-line.js';
 
@@ -27,6 +28,10 @@ export function render(ctx: RenderContext): void {
     if (firstLineParts.length > 0) {
       lines.push(firstLineParts.join(' │ '));
     }
+
+    // 외부 CLI 사용량 (전용 줄). 첫 줄 폭을 건드리지 않기 위해 별도 줄로 둔다.
+    const externalLine = renderExternalLine(ctx);
+    if (externalLine) lines.push(externalLine);
 
     // 프로젝트 + 설정 카운트 (한 줄로)
     const projectLine = renderProjectLine(ctx);
@@ -53,6 +58,10 @@ export function render(ctx: RenderContext): void {
 
     const rateLimitParts = renderRateLimitParts(ctx);
     allParts.push(...rateLimitParts);
+
+    // 컴팩트 레이아웃은 전용 줄을 만들지 않으므로 같은 줄에 이어붙인다.
+    const externalLine = renderExternalLine(ctx);
+    if (externalLine) allParts.push(externalLine);
 
     const projectLine = renderProjectLine(ctx);
     if (projectLine) allParts.push(projectLine);

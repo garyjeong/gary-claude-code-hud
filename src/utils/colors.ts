@@ -77,3 +77,8 @@ export const red = (text: string) => colorize(text, COLORS.red);
 export const magenta = (text: string) => colorize(text, COLORS.magenta);
 export const blue = (text: string) => colorize(text, COLORS.blue);
 export const bold = (text: string) => colorize(text, COLORS.bold);
+
+// 외부 CLI 이름용. 각 CLI를 한눈에 구분하되 기존 3계열(녹색·노랑·시안)과 겹치지 않게
+// 밝은 계열 + bold 를 쓴다.
+export const codexName = (text: string) => colorize(text, COLORS.bold + COLORS.brightBlue);
+export const grokName = (text: string) => colorize(text, COLORS.bold + COLORS.brightMagenta);

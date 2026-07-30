@@ -7,6 +7,7 @@ import type { RenderContext } from '../types.js';
 import { LABELS } from '../types.js';
 import { ICON } from '../constants.js';
 import { getColorForPercent, colorize, yellow, dim } from '../utils/colors.js';
+import { formatRemaining } from '../utils/formatters.js';
 
 /**
  * Rate Limit을 단일 파트로 반환
@@ -24,27 +25,24 @@ export function renderRateLimitParts(ctx: RenderContext): string[] {
 
   const items: string[] = [];
 
-  // 5시간 윈도우
+  // 5시간 윈도우 — 초기화 시각을 함께 표시한다(모델명 옆 잔여시간 표기를 대체).
   if (limits.five_hour) {
     const pct = Math.round(limits.five_hour.utilization);
     const color = getColorForPercent(pct);
-    items.push(`${colorize(`${pct}%`, color)}${dim(`(${LABELS.fiveHour})`)}`);
+    const meta = [LABELS.fiveHour, formatRemaining(limits.five_hour.resets_at)]
+      .filter(Boolean)
+      .join('·');
+    items.push(`${colorize(`${pct}%`, color)}${dim(`(${meta})`)}`);
   }
 
   // Max 플랜인 경우 7일 전체
+  // 소넷 주간 한도는 별도 측정이 없어져 표시하지 않는다(사용자 결정).
   const isMaxPlan = ctx.config.plan === 'max100' || ctx.config.plan === 'max200';
 
   if (isMaxPlan && limits.seven_day) {
     const pct = Math.round(limits.seven_day.utilization);
     const color = getColorForPercent(pct);
     items.push(`${colorize(`${pct}%`, color)}${dim(`(${LABELS.sevenDay})`)}`);
-  }
-
-  // 7일 소넷 (Max 플랜인 경우)
-  if (isMaxPlan && limits.seven_day_sonnet) {
-    const pct = Math.round(limits.seven_day_sonnet.utilization);
-    const color = getColorForPercent(pct);
-    items.push(`${colorize(`${pct}%`, color)}${dim(`(${LABELS.sevenDaySonnet})`)}`);
   }
 
   if (items.length === 0) return [];

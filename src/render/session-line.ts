@@ -6,7 +6,7 @@
 import type { RenderContext } from '../types.js';
 import { ICON, AUTOCOMPACT_BUFFER } from '../constants.js';
 import { green, cyan, getColorForPercent, colorize, dim, RESET } from '../utils/colors.js';
-import { shortenModelName, formatTokens, formatTimeRemaining } from '../utils/formatters.js';
+import { shortenModelName, formatTokens } from '../utils/formatters.js';
 import { getContextPercent, getCurrentTokens, getTotalTokens } from '../utils/stdin.js';
 
 /**
@@ -15,15 +15,9 @@ import { getContextPercent, getCurrentTokens, getTotalTokens } from '../utils/st
 export function renderSessionLine(ctx: RenderContext): string | null {
   const parts: string[] = [];
 
-  // 모델명 + 5시간 리셋까지 남은 시간
+  // 모델명만. 5시간 리셋 잔여시간은 표시하지 않는다(사용자 결정).
   const modelName = shortenModelName(ctx.stdin.model?.display_name, ctx.stdin.model?.id);
-  const resetTime = ctx.rateLimits?.five_hour?.resets_at;
-  if (ctx.config.display.showSessionDuration && resetTime) {
-    const remaining = formatTimeRemaining(resetTime);
-    parts.push(`${green(ICON.model)} ${green(modelName)}${dim(`(${remaining})`)}`);
-  } else {
-    parts.push(`${green(ICON.model)} ${green(modelName)}`);
-  }
+  parts.push(`${green(ICON.model)} ${green(modelName)}`);
 
   // 컨텍스트 사용량 (showContext 설정에 따라)
   if (ctx.config.display.showContext) {
