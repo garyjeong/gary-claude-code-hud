@@ -14,11 +14,22 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import { CACHE_DIR, EXTERNAL_CACHE_FILE } from '../constants.js';
 
+/**
+ * 일부만 성공한 결과에 쓰는 짧은 TTL(초).
+ *
+ * 한쪽 CLI가 일시적으로 실패했을 때(예: grok 로그인 만료) 그 결과를 정상 TTL만큼
+ * 붙들고 있으면 복구된 뒤에도 계속 빈 값을 보여준다. 짧게 잡아 곧 재시도하게 한다.
+ * 아예 캐시하지 않으면, 해당 CLI를 안 쓰는 사용자는 매 렌더마다 전체 스캔을 물게 된다.
+ */
+const PARTIAL_TTL_SECONDS = 10;
+
 interface Envelope<T> {
   data: T;
   timestamp: number;
   /** 캐시를 무효화해야 하는 입력 조건(창 경계 등) */
   key: string;
+  /** 일부 소스가 실패한 결과인지 */
+  partial?: boolean;
 }
 
 function cachePath(): string {
@@ -31,19 +42,20 @@ export function loadExternalCache<T>(key: string, ttlSeconds: number): T | null 
     if (!fs.existsSync(p)) return null;
     const env = JSON.parse(fs.readFileSync(p, 'utf-8')) as Envelope<T>;
     if (env.key !== key) return null;
-    if ((Date.now() - env.timestamp) / 1000 >= ttlSeconds) return null;
+    const ttl = env.partial ? Math.min(ttlSeconds, PARTIAL_TTL_SECONDS) : ttlSeconds;
+    if ((Date.now() - env.timestamp) / 1000 >= ttl) return null;
     return env.data;
   } catch {
     return null;
   }
 }
 
-export function saveExternalCache<T>(key: string, data: T): void {
+export function saveExternalCache<T>(key: string, data: T, partial = false): void {
   try {
     const p = cachePath();
     const dir = path.dirname(p);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-    const env: Envelope<T> = { data, timestamp: Date.now(), key };
+    const env: Envelope<T> = { data, timestamp: Date.now(), key, partial };
     fs.writeFileSync(p, JSON.stringify(env), { mode: 0o600 });
   } catch {
     // 캐시 저장 실패 무시

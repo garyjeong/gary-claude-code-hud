@@ -27,7 +27,11 @@ export function renderExternalLine(ctx: RenderContext): string | null {
     const pct = Math.round(usedPercent);
 
     let part = `${codexName(LABELS.codex)} ${colorize(`${pct}%`, getColorForPercent(pct))}`;
-    if (windowTokens) part += ` ${dim(formatTokens(windowTokens))}${truncated ? dim('+') : ''}`;
+    // 0도 표시한다. windowTokens가 0인데 truncated만 true인 경우(경계 제외로 합이 0)
+    // truthy 검사로 묶으면 과소 집계 힌트(+)까지 함께 사라진다.
+    if (windowTokens !== undefined) {
+      part += ` ${dim(formatTokens(windowTokens))}${truncated ? dim('+') : ''}`;
+    }
 
     const meta = [formatWindow(windowMinutes), formatResetAt(resetsAt)].filter(Boolean).join('·');
     if (meta) part += dim(`(${meta})`);

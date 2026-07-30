@@ -53,6 +53,18 @@ export interface GrokUsage {
 }
 
 /**
+ * grok 데이터가 이 머신에 있는지. (codex 쪽 hasCodexData 와 같은 이유 — 실패와
+ * 미설치를 구분해야 캐시 TTL 을 올바르게 고를 수 있다)
+ */
+export function hasGrokData(): boolean {
+  try {
+    return fs.existsSync(path.join(os.homedir(), '.grok', 'sessions'));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * 앵커를 기준으로 현재 주간 창을 구한다.
  * 앵커가 미래여도 과거여도 동작한다 — 7일 주기로 now를 포함하는 창을 찾는다.
  */
@@ -245,9 +257,12 @@ export function readGrokUsage(weekAnchor?: string): GrokUsage | null {
 
   let inWindow: { dir: string; mtime: number }[];
   try {
+    // 디렉터리면 모두 프로젝트로 본다. 인코딩 형태(%2F 접두 등)로 걸러내면
+    // 다른 방식으로 인코딩된 cwd 세션이 조용히 빠진다.
+    // sessions 아래 파일(session_search.sqlite 등)은 isDirectory로 이미 제외된다.
     const projectDirs = fs
       .readdirSync(root, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && e.name.startsWith('%2F'))
+      .filter((e) => e.isDirectory())
       .map((e) => path.join(root, e.name));
 
     inWindow = projectDirs

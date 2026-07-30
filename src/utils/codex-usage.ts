@@ -50,6 +50,21 @@ function sessionsRoot(): string {
   return path.join(os.homedir(), '.codex', 'sessions');
 }
 
+/**
+ * codex 데이터가 이 머신에 있는지.
+ *
+ * 읽기 실패를 "일시적 실패"와 "애초에 안 씀"으로 구분하기 위해 필요하다.
+ * 둘을 뭉치면, codex 를 안 쓰는 사용자에게도 실패 취급의 짧은 캐시 TTL 이 적용돼
+ * 매번 전체 스캔을 물게 된다.
+ */
+export function hasCodexData(): boolean {
+  try {
+    return fs.existsSync(sessionsRoot());
+  } catch {
+    return false;
+  }
+}
+
 /** YYYY/MM/DD 경로 조각 */
 function datePath(d: Date): string {
   const y = d.getFullYear();
@@ -216,16 +231,22 @@ function rolloutsInRange(startSec: number, endSec: number): string[] {
  * (codex 세션은 짧아 경계에 걸리는 경우가 드물다).
  */
 function windowTokenTotal(startSec: number, endSec: number): { tokens: number; truncated: boolean } {
-  const files = rolloutsInRange(startSec, endSec);
-  let truncated = files.length > MAX_WINDOW_FILES;
+  let truncated = false;
 
-  let tokens = 0;
-  for (const file of files.slice(0, MAX_WINDOW_FILES)) {
+  // 먼저 창 안에서 시작한 세션만 골라낸다. 상한을 먼저 적용하면 안 된다 —
+  // rolloutsInRange는 날짜 오름차순이고 패딩 일자·창 밖 파일까지 섞여 있어,
+  // 그대로 자르면 가장 오래된 것을 남기고 최신 세션을 버린다.
+  const candidates: { file: string; started: number }[] = [];
+  for (const file of rolloutsInRange(startSec, endSec)) {
     const started = sessionStartFromName(file);
-    if (started === null) continue;
+    if (started === null) {
+      // 이름 패턴이 다른 파일 — 합계에서 빠지므로 과소 집계임을 드러낸다.
+      truncated = true;
+      continue;
+    }
     if (started >= endSec) continue;
     if (started < startSec) {
-      // 경계를 걸친 세션 — 이 파일이 창 안에서도 갱신됐다면 몫이 빠진다.
+      // 경계를 걸친 세션 — 이 파일이 창 안에서도 갱신됐다면 그 몫이 빠진다.
       try {
         if (fs.statSync(file).mtimeMs / 1000 >= startSec) truncated = true;
       } catch {
@@ -233,6 +254,15 @@ function windowTokenTotal(startSec: number, endSec: number): { tokens: number; t
       }
       continue;
     }
+    candidates.push({ file, started });
+  }
+
+  // 상한은 실제 집계 대상에만 적용하고, 최신 세션을 우선 남긴다.
+  if (candidates.length > MAX_WINDOW_FILES) truncated = true;
+  candidates.sort((a, b) => b.started - a.started);
+
+  let tokens = 0;
+  for (const { file } of candidates.slice(0, MAX_WINDOW_FILES)) {
     const { totalTokens } = parseRollout(file);
     if (typeof totalTokens === 'number') tokens += totalTokens;
   }

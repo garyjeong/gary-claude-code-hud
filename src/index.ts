@@ -12,8 +12,8 @@ import { parseTranscript } from './utils/transcript.js';
 import { countConfigs } from './utils/config-counter.js';
 import { getGitStatus } from './utils/git.js';
 import { fetchUsageLimits } from './utils/api-client.js';
-import { readCodexUsage } from './utils/codex-usage.js';
-import { readGrokUsage } from './utils/grok-usage.js';
+import { hasCodexData, readCodexUsage } from './utils/codex-usage.js';
+import { hasGrokData, readGrokUsage } from './utils/grok-usage.js';
 import { loadExternalCache, saveExternalCache } from './utils/external-cache.js';
 import { render } from './render/index.js';
 import { yellow, RESET } from './utils/colors.js';
@@ -73,7 +73,10 @@ async function main(): Promise<void> {
           // grok 미설치·경로 변경 — 이 항목만 생략
         }
         externalUsage = { codex, grok };
-        saveExternalCache(cacheKey, externalUsage);
+        // 데이터가 있는데도 못 읽은 경우만 "일시적 실패"로 보고 짧은 TTL을 쓴다.
+        // 애초에 안 쓰는 CLI까지 실패로 취급하면, 그 사용자는 매번 전체 스캔을 문다.
+        const partial = (!codex && hasCodexData()) || (!grok && hasGrokData());
+        saveExternalCache(cacheKey, externalUsage, partial);
       }
     }
 
