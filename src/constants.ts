@@ -14,6 +14,7 @@ export const RATE_LIMIT_BACKOFF_MS = 300_000; // 5분
 // 캐시 경로
 export const CACHE_DIR = '.claude';
 export const CACHE_FILE = 'gary-claude-code-hud-cache.json';
+export const EXTERNAL_CACHE_FILE = 'gary-claude-code-hud-external-cache.json';
 export const CONFIG_FILE = 'gary-claude-code-hud.local.json';
 
 // 진행바 설정

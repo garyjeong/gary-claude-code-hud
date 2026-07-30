@@ -29,8 +29,11 @@ import * as os from 'node:os';
 const TAIL_STEPS = [64 * 1024, 512 * 1024, 4 * 1024 * 1024];
 /** 세션 시작 시각 판정용. 첫 줄만 필요해 아주 작게 읽는다. */
 const HEAD_BYTES = 8 * 1024;
-/** 스캔할 최대 세션 수. 주간 창이라 세션이 많아도 상태줄 렌더가 느려지지 않게 제한한다. */
-const MAX_SESSIONS = 40;
+/**
+ * 스캔할 최대 세션 수. 계정 전역·주간이라 세션이 많다(실측: 전체 91개 디렉터리).
+ * 결과는 캐시되므로 이 비용은 TTL마다 한 번만 든다.
+ */
+const MAX_SESSIONS = 120;
 /** 실측으로 확정한 환산 비율 */
 const TICKS_PER_USD = 1e10;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -45,6 +48,8 @@ export interface GrokUsage {
   resetsAt: number;
   /** 상한에 걸려 일부 세션이 빠졌는지 */
   truncated: boolean;
+  /** 앵커에 정렬된 주간 창인지. false면 최근 7일 롤링 창이다. */
+  aligned: boolean;
 }
 
 /**
@@ -222,25 +227,41 @@ function sessionDelta(dir: string, winStart: number, winEnd: number): RawUsage |
 }
 
 /**
- * 이 프로젝트(cwd)의 이번 주간 창 grok 사용량 합계. 실패하면 null.
+ * 이번 주간 창의 grok 사용량 합계 — **계정 전역**(모든 프로젝트). 실패하면 null.
+ *
+ * cwd 하나만 세면 grok.com 웹앱의 계정 사용량보다 체계적으로 작게 나온다.
+ * codex 한도도 계정 전역이므로, 같은 줄에 나란히 놓으려면 범위를 맞춰야 한다.
+ * grok은 cwd를 URL 인코딩해 디렉터리명으로 쓰므로(`/` 까지 인코딩) 그 아래를 모두 훑는다.
  */
-export function readGrokUsage(cwd?: string, weekAnchor?: string): GrokUsage | null {
-  if (!cwd) return null;
+export function readGrokUsage(weekAnchor?: string): GrokUsage | null {
+  // 앵커가 없거나 형식이 틀리면 최근 7일 롤링 창으로 폴백한다. 앵커는 계정마다
+  // 다르므로, 설정하지 않은 설치에서 남의 계정 주기로 엉뚱한 구간을 집계하는 것보다
+  // "최근 7일"이 정직하다. 라벨도 '주간'이 아니라 '7일'로 구분해 표시한다.
+  const aligned = weeklyWindow(weekAnchor ?? '');
+  const now = Date.now();
+  const win = aligned ?? { start: new Date(now - WEEK_MS), reset: new Date(now) };
 
-  const win = weekAnchor ? weeklyWindow(weekAnchor) : null;
-  if (!win) return null;
-
-  // grok은 cwd를 URL 인코딩해 디렉터리명으로 쓴다 ('/' 까지 인코딩).
-  const encoded = encodeURIComponent(cwd);
-  const base = path.join(os.homedir(), '.grok', 'sessions', encoded);
+  const root = path.join(os.homedir(), '.grok', 'sessions');
 
   let inWindow: { dir: string; mtime: number }[];
   try {
-    inWindow = fs
-      .readdirSync(base, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
-      .map((e) => {
-        const full = path.join(base, e.name);
+    const projectDirs = fs
+      .readdirSync(root, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && e.name.startsWith('%2F'))
+      .map((e) => path.join(root, e.name));
+
+    inWindow = projectDirs
+      .flatMap((proj) => {
+        try {
+          return fs
+            .readdirSync(proj, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => path.join(proj, e.name));
+        } catch {
+          return [];
+        }
+      })
+      .map((full) => {
         try {
           return { dir: full, mtime: fs.statSync(path.join(full, 'updates.jsonl')).mtimeMs };
         } catch {
@@ -284,5 +305,6 @@ export function readGrokUsage(cwd?: string, weekAnchor?: string): GrokUsage | nu
     sessions,
     resetsAt: Math.floor(win.reset.getTime() / 1000),
     truncated,
+    aligned: aligned !== null,
   };
 }

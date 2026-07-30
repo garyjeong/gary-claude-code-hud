@@ -21,29 +21,33 @@ export function renderExternalLine(ctx: RenderContext): string | null {
 
   const items: string[] = [];
 
-  // codex — 한도 %(윈도우 · 초기화 시각) + 세션 누적 토큰
+  // codex — 한도 % + 창 누적 토큰(계정 전역) + (윈도우·초기화 시각)
   if (ext.codex) {
-    const { usedPercent, windowMinutes, resetsAt, totalTokens } = ext.codex;
+    const { usedPercent, windowMinutes, resetsAt, windowTokens, truncated } = ext.codex;
     const pct = Math.round(usedPercent);
-    const meta = [formatWindow(windowMinutes), formatResetAt(resetsAt)].filter(Boolean).join('·');
 
     let part = `${codexName(LABELS.codex)} ${colorize(`${pct}%`, getColorForPercent(pct))}`;
+    if (windowTokens) part += ` ${dim(formatTokens(windowTokens))}${truncated ? dim('+') : ''}`;
+
+    const meta = [formatWindow(windowMinutes), formatResetAt(resetsAt)].filter(Boolean).join('·');
     if (meta) part += dim(`(${meta})`);
-    if (totalTokens) part += ` ${dim(formatTokens(totalTokens))}`;
     items.push(part);
   }
 
   // grok — 주간 창 누적 토큰 + 비용 (한도 %는 CLI로 얻을 수 없다)
   // 초기화 시각을 함께 보여줘 grok.com 사용량 화면과 같은 창임을 알 수 있게 한다.
   if (ext.grok) {
-    const { totalTokens, costUsd, resetsAt, truncated } = ext.grok;
+    const { totalTokens, costUsd, resetsAt, truncated, aligned } = ext.grok;
     let part = `${grokName(LABELS.grok)} ${magenta(formatTokens(totalTokens))}`;
-    if (costUsd > 0) part += ` ${magenta(formatCostUsd(costUsd))}`;
-
-    const meta = [LABELS.weekly, formatResetAt(resetsAt)].filter(Boolean).join('·');
-    if (meta) part += dim(`(${meta})`);
     // 세션 상한에 걸려 일부가 빠졌으면 합계가 과소 집계임을 숨기지 않는다.
     if (truncated) part += dim('+');
+    if (costUsd > 0) part += ` ${magenta(formatCostUsd(costUsd))}`;
+
+    // 앵커에 정렬된 창이면 '주간·초기화시각', 폴백이면 '7일'(롤링)로 구분한다.
+    const meta = aligned
+      ? [LABELS.weekly, formatResetAt(resetsAt)].filter(Boolean).join('·')
+      : LABELS.sevenDay;
+    if (meta) part += dim(`(${meta})`);
     items.push(part);
   }
 
