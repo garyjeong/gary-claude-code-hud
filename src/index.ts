@@ -9,6 +9,7 @@ import type { ExternalUsage, RenderContext } from './types.js';
 import { readStdin } from './utils/stdin.js';
 import { loadConfig } from './utils/config.js';
 import { parseTranscript } from './utils/transcript.js';
+import { getSessionId, getSessionName } from './utils/session-name.js';
 import { countConfigs } from './utils/config-counter.js';
 import { getGitStatus } from './utils/git.js';
 import { fetchUsageLimits } from './utils/api-client.js';
@@ -80,9 +81,13 @@ async function main(): Promise<void> {
       }
     }
 
-    // 8. 렌더 컨텍스트 구성
+    // 8. 세션 이름 (~/.claude/sessions 역조회 — 없으면 표시 생략)
+    const sessionName = getSessionName(getSessionId(stdin)) ?? undefined;
+
+    // 9. 렌더 컨텍스트 구성
     const ctx: RenderContext = {
       stdin,
+      sessionName,
       config,
       transcript,
       configCounts,
@@ -92,7 +97,7 @@ async function main(): Promise<void> {
       externalUsage,
     };
 
-    // 9. 렌더링
+    // 10. 렌더링
     render(ctx);
   } catch (error) {
     console.log(`${yellow(ICON.warning)} ${RESET}`);

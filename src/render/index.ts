@@ -4,7 +4,7 @@
 
 import type { RenderContext } from '../types.js';
 import { RESET } from '../utils/colors.js';
-import { renderSessionLine } from './session-line.js';
+import { renderSessionLine, renderSessionNamePart } from './session-line.js';
 import { renderRateLimitParts } from './rate-limit-line.js';
 import { renderExternalLine } from './external-line.js';
 import { renderProjectLine, renderConfigCountsLine } from './project-line.js';
@@ -21,6 +21,8 @@ export function render(ctx: RenderContext): void {
 
     // 모델 + 사용량 (한 줄)
     const firstLineParts: string[] = [];
+    const sessionNamePart = renderSessionNamePart(ctx);
+    if (sessionNamePart) firstLineParts.push(sessionNamePart);
     const sessionLine = renderSessionLine(ctx);
     if (sessionLine) firstLineParts.push(sessionLine);
     const rateLimitParts = renderRateLimitParts(ctx);
@@ -52,6 +54,9 @@ export function render(ctx: RenderContext): void {
   } else {
     // 컴팩트 레이아웃 - 모든 정보를 한 줄에
     const allParts: string[] = [];
+
+    const sessionNamePart = renderSessionNamePart(ctx);
+    if (sessionNamePart) allParts.push(sessionNamePart);
 
     const sessionLine = renderSessionLine(ctx);
     if (sessionLine) allParts.push(sessionLine);

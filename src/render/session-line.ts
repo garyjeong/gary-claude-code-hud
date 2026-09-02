@@ -10,6 +10,15 @@ import { shortenModelName, formatTokens } from '../utils/formatters.js';
 import { getContextPercent, getCurrentTokens, getTotalTokens } from '../utils/stdin.js';
 
 /**
+ * 세션 이름 파트 렌더링 (모델 왼쪽에 붙는다)
+ * 이름을 못 찾으면 표시하지 않는다.
+ */
+export function renderSessionNamePart(ctx: RenderContext): string | null {
+  if (!ctx.sessionName) return null;
+  return `${cyan(ICON.session)} ${cyan(ctx.sessionName)}`;
+}
+
+/**
  * 세션 라인 렌더링
  */
 export function renderSessionLine(ctx: RenderContext): string | null {

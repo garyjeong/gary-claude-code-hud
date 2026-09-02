@@ -28,6 +28,8 @@ export interface StdinInput {
   };
   cwd?: string;
   transcript_path?: string;
+  /** Claude Code 버전에 따라 없을 수 있다 — 없으면 transcript_path에서 뽑는다 */
+  session_id?: string;
 }
 
 // ============================================================================
@@ -164,6 +166,8 @@ export interface TranscriptData {
 
 export interface RenderContext {
   stdin: StdinInput;
+  /** ~/.claude/sessions 에서 역조회한 세션 이름 (없으면 표시하지 않는다) */
+  sessionName?: string;
   config: Config;
   transcript: TranscriptData;
   configCounts: ConfigCounts;
