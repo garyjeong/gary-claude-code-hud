@@ -7,7 +7,7 @@ import type { RenderContext } from '../types.js';
 import { LABELS } from '../types.js';
 import { ICON } from '../constants.js';
 import { getColorForPercent, colorize, yellow, dim } from '../utils/colors.js';
-import { formatRemaining } from '../utils/formatters.js';
+import { formatRemaining, formatResetAt } from '../utils/formatters.js';
 
 /**
  * Rate Limit을 단일 파트로 반환
@@ -39,10 +39,15 @@ export function renderRateLimitParts(ctx: RenderContext): string[] {
   // 소넷 주간 한도는 별도 측정이 없어져 표시하지 않는다(사용자 결정).
   const isMaxPlan = ctx.config.plan === 'max100' || ctx.config.plan === 'max200';
 
+  // 7일 창도 초기화 시각을 함께 보여준다. 남은 일수가 길어 "언제 풀리는가"가
+  // 5시간 창보다 오히려 더 안 잡히므로, 절대 시각(formatResetAt)으로 적는다.
   if (isMaxPlan && limits.seven_day) {
     const pct = Math.round(limits.seven_day.utilization);
     const color = getColorForPercent(pct);
-    items.push(`${colorize(`${pct}%`, color)}${dim(`(${LABELS.sevenDay})`)}`);
+    const meta = [LABELS.sevenDay, formatResetAt(limits.seven_day.resets_at)]
+      .filter(Boolean)
+      .join('·');
+    items.push(`${colorize(`${pct}%`, color)}${dim(`(${meta})`)}`);
   }
 
   if (items.length === 0) return [];

@@ -4,7 +4,8 @@
  *
  * 두 CLI의 표시 항목이 다른 이유:
  *  - codex는 서버가 rate_limits를 내려주므로 한도 %와 초기화 시각을 보여준다.
- *  - grok은 한도를 아예 노출하지 않아 토큰·비용·호출 수만 보여준다.
+ *  - grok은 한도를 아예 노출하지 않는다. %는 설정된 주간 한도(grokWeekCostLimitUsd)로
+ *    나눠 만든 근사값이라 codex의 %와 같은 신뢰도가 아니다.
  */
 
 import type { RenderContext } from '../types.js';
@@ -42,7 +43,17 @@ export function renderExternalLine(ctx: RenderContext): string | null {
   // 초기화 시각을 함께 보여줘 grok.com 사용량 화면과 같은 창임을 알 수 있게 한다.
   if (ext.grok) {
     const { totalTokens, costUsd, resetsAt, truncated, aligned } = ext.grok;
-    let part = `${grokName(LABELS.grok)} ${magenta(formatTokens(totalTokens))}`;
+    let part = grokName(LABELS.grok);
+
+    // 한도 %는 grok에서 얻을 수 없어 설정된 주간 한도로 나눠 만든다.
+    // 한도가 0(미설정)이면 근거 없는 %를 지어내지 않고 생략한다.
+    const limitUsd = ctx.config.grokWeekCostLimitUsd;
+    if (limitUsd > 0) {
+      const pct = Math.min(999, Math.round((costUsd / limitUsd) * 100));
+      part += ` ${colorize(`${pct}%`, getColorForPercent(pct))}`;
+    }
+
+    part += ` ${magenta(formatTokens(totalTokens))}`;
     // 세션 상한에 걸려 일부가 빠졌으면 합계가 과소 집계임을 숨기지 않는다.
     if (truncated) part += dim('+');
     if (costUsd > 0) part += ` ${magenta(formatCostUsd(costUsd))}`;

@@ -73,6 +73,7 @@ npm run build
   "plan": "max200",
   "layout": "multiline",
   "grokWeekAnchor": "2026-08-04T14:19:00",
+  "grokWeekCostLimitUsd": 259,
   "display": {
     "showContext": true,
     "showRateLimit": true,
@@ -97,6 +98,7 @@ npm run build
 | `plan` | API 플랜 | `pro`, `max100`, `max200`, `team` | `max200` |
 | `layout` | 레이아웃 | `multiline`, `compact` | `multiline` |
 | `grokWeekAnchor` | grok 주간 한도 초기화 기준시각 (로컬 ISO) | `2026-08-04T14:19:00` | 위 값 |
+| `grokWeekCostLimitUsd` | grok 주간 한도(USD). 창 누적 비용을 나눠 %를 만든다. `0`이면 % 생략 | 숫자 | `259` |
 | `display.showContext` | 컨텍스트 사용량 표시 | `true/false` | `true` |
 | `display.showRateLimit` | Rate Limit 표시 | `true/false` | `true` |
 | `display.showProject` | 프로젝트 경로 표시 | `true/false` | `true` |
@@ -138,7 +140,7 @@ API 호출 최소화를 위해 결과를 캐싱합니다:
 | | 데이터 소스 | 표시 항목 |
 |---|---|---|
 | codex | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | 한도 %, 창 누적 토큰, 윈도우, 초기화 시각 |
-| grok | `~/.grok/sessions/<URL인코딩 cwd>/<session>/updates.jsonl` (모든 cwd) | 창 누적 토큰, 비용(USD), 초기화 시각 |
+| grok | `~/.grok/sessions/<URL인코딩 cwd>/<session>/updates.jsonl` (모든 cwd) | 한도 %(설정 한도로 나눈 근사), 창 누적 토큰, 비용(USD), 초기화 시각 |
 
 - **codex**: 서버가 턴마다 내려주는 `rate_limits` 스냅샷 중 가장 최신 값을 씁니다.
   최신 파일 하나만 보면 스냅샷 없이 끝난 짧은 실행 때문에 표시가 사라지므로,
@@ -152,7 +154,15 @@ API 호출 최소화를 위해 결과를 캐싱합니다:
   것입니다. 확인한 사실 — 로컬 세션 파일에는 한도 필드가 없고, `/usage` 슬래시 커맨드는
   TUI 전용이며(headless `-p`는 이를 일반 프롬프트로 취급), CLI OIDC 액세스 토큰으로
   `cli-chat-proxy.grok.com` · `api.x.ai`의 사용량/구독 경로를 조회하면 모두 404입니다
-  (토큰 자체는 유효 — 401이 아님). 그래서 %가 아니라 토큰·비용만 표시합니다.
+  (토큰 자체는 유효 — 401이 아님).
+- **grok 한도 %는 근사값입니다.** 한도를 얻을 수 없으므로 `grokWeekCostLimitUsd`를 분모로
+  두고 창 누적 비용을 나눠 계산합니다. 기본값 `259`는 2026-09-08 관측 한 쌍
+  (창 누적 `$2.59` ↔ grok.com 표시 `1%`)에서 역산한 값입니다.
+  ★**화면 %가 반올림이라 정밀하지 않습니다** — `1%`는 실제 0.5~1.49%이고 그만큼 한도는
+  $173~$518 범위입니다. 표시된 %가 커진 시점(10% 이상)에 다시 역산하면 오차가 그 비율만큼
+  줄어듭니다. 비용을 분모로 쓰는 이유는 grok 한도가 크레딧(금액) 개념이고 `costUsdTicks`는
+  서버가 계산해 내려준 값이라 모델별 가중치가 이미 반영돼 있기 때문입니다(토큰 합계는 아님).
+  `0`으로 두면 근거 없는 %를 지어내지 않고 토큰·비용만 표시합니다.
 - **grok 주간 창**: %를 못 가져오는 대신, 집계 창을 웹앱의 주간 한도 창과 맞춥니다.
   `grokWeekAnchor`(초기화 시각)를 앵커로 7일 주기를 되돌려 현재 창을 구하고, 그 창 안의
   **증분**만 합산합니다. `usage`는 세션 전체 누적이므로 창을 걸친 세션은 창 직전 값을

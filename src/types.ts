@@ -2,7 +2,7 @@
  * gary-claude-code-hud 타입 정의
  */
 
-import { GROK_WEEK_ANCHOR } from './constants.js';
+import { GROK_WEEK_ANCHOR, GROK_WEEK_COST_LIMIT_USD } from './constants.js';
 
 // ============================================================================
 // stdin 입력 타입
@@ -60,6 +60,11 @@ export interface Config {
    * grok.com 설정 → 사용량에 표시된 초기화 시각을 넣으면 그 창으로 집계된다.
    */
   grokWeekAnchor: string;
+  /**
+   * grok 주간 한도(USD). 창 누적 비용을 이 값으로 나눠 %를 만든다.
+   * grok이 한도를 노출하지 않아 관측으로 역산한 근사값이다 — 0이면 %를 표시하지 않는다.
+   */
+  grokWeekCostLimitUsd: number;
   display: DisplayConfig;
   cache: {
     ttlSeconds: number;
@@ -70,6 +75,7 @@ export const DEFAULT_CONFIG: Config = {
   plan: 'max200',
   layout: 'multiline',
   grokWeekAnchor: GROK_WEEK_ANCHOR,
+  grokWeekCostLimitUsd: GROK_WEEK_COST_LIMIT_USD,
   display: {
     showContext: true,
     showRateLimit: true,

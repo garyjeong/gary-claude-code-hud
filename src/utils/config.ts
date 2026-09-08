@@ -67,6 +67,7 @@ function mergeConfig(userConfig: Partial<Config>): Config {
     plan: userConfig.plan ?? DEFAULT_CONFIG.plan,
     layout: userConfig.layout ?? DEFAULT_CONFIG.layout,
     grokWeekAnchor: userConfig.grokWeekAnchor ?? DEFAULT_CONFIG.grokWeekAnchor,
+    grokWeekCostLimitUsd: userConfig.grokWeekCostLimitUsd ?? DEFAULT_CONFIG.grokWeekCostLimitUsd,
     display: {
       showContext: userConfig.display?.showContext ?? DEFAULT_CONFIG.display.showContext,
       showRateLimit: userConfig.display?.showRateLimit ?? DEFAULT_CONFIG.display.showRateLimit,
