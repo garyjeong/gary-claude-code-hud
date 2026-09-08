@@ -289,7 +289,24 @@ export function readGrokUsage(weekAnchor?: string): GrokUsage | null {
     return null;
   }
 
-  if (inWindow.length === 0) return null;
+  // 창 안 사용이 0인 경우(창이 막 리셋됐거나 이번 주 grok을 안 씀)에도 0을 돌려준다.
+  // null을 돌려주면 렌더가 grok 항목을 통째로 생략해 "안 씀"과 "읽기 실패"가 구분되지
+  // 않는다 — 창이 리셋될 때마다 grok이 사라진 것처럼 보인다(2026-09-08 실제로 겪음).
+  // 부수 효과로 index.ts의 partial 판정(!grok && hasGrokData)도 풀린다. 전에는 사용이
+  // 0인 동안 계속 "일시적 실패"로 잡혀 TTL 10초로 전체 스캔을 반복했다.
+  // 여기까지 왔다는 것은 sessions 디렉터리를 읽는 데 성공했다는 뜻이다. 읽기 자체가
+  // 실패하면 위 catch에서 이미 null로 빠졌으므로, 진짜 실패와 섞이지 않는다.
+  const emptyWindow = (): GrokUsage => ({
+    totalTokens: 0,
+    costUsd: 0,
+    modelCalls: 0,
+    sessions: 0,
+    resetsAt: Math.floor(win.reset.getTime() / 1000),
+    truncated: false,
+    aligned: aligned !== null,
+  });
+
+  if (inWindow.length === 0) return emptyWindow();
 
   const truncated = inWindow.length > MAX_SESSIONS;
   const dirs = inWindow.slice(0, MAX_SESSIONS);
@@ -311,7 +328,8 @@ export function readGrokUsage(weekAnchor?: string): GrokUsage | null {
     sessions++;
   }
 
-  if (sessions === 0) return null;
+  // 창에 걸친 세션은 있는데 증분이 하나도 안 잡힌 경우도 사용량 0이다.
+  if (sessions === 0) return emptyWindow();
 
   return {
     totalTokens,
